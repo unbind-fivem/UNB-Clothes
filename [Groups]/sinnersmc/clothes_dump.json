@@ -1,0 +1,65 @@
+[
+  {
+    "DlcCollectionName": "mp_m_sinnersmc",
+    "PedName": "mp_m_freemode_01",
+    "ComponentVariations": [
+      {
+        "NameHash": "CLO_DCT_ARMOR_0_0_M",
+        "ComponentType": "PV_COMP_TASK",
+        "ComponentId": 9,
+        "DrawableId": 57,
+        "TextureId": 0,
+        "RelativeCollectionDrawableId": 0
+      },
+      {
+        "NameHash": "CLO_DCT_ARMOR_0_1_M",
+        "ComponentType": "PV_COMP_TASK",
+        "ComponentId": 9,
+        "DrawableId": 57,
+        "TextureId": 1,
+        "RelativeCollectionDrawableId": 0
+      },
+      {
+        "NameHash": "CLO_DCT_ARMOR_0_2_M",
+        "ComponentType": "PV_COMP_TASK",
+        "ComponentId": 9,
+        "DrawableId": 57,
+        "TextureId": 2,
+        "RelativeCollectionDrawableId": 0
+      },
+      {
+        "NameHash": "CLO_DCT_ARMOR_0_3_M",
+        "ComponentType": "PV_COMP_TASK",
+        "ComponentId": 9,
+        "DrawableId": 57,
+        "TextureId": 3,
+        "RelativeCollectionDrawableId": 0
+      },
+      {
+        "NameHash": "CLO_DCT_ARMOR_0_4_M",
+        "ComponentType": "PV_COMP_TASK",
+        "ComponentId": 9,
+        "DrawableId": 57,
+        "TextureId": 4,
+        "RelativeCollectionDrawableId": 0
+      },
+      {
+        "NameHash": "CLO_DCT_ARMOR_0_5_M",
+        "ComponentType": "PV_COMP_TASK",
+        "ComponentId": 9,
+        "DrawableId": 57,
+        "TextureId": 5,
+        "RelativeCollectionDrawableId": 0
+      },
+      {
+        "NameHash": "CLO_DCT_ARMOR_0_6_M",
+        "ComponentType": "PV_COMP_TASK",
+        "ComponentId": 9,
+        "DrawableId": 57,
+        "TextureId": 6,
+        "RelativeCollectionDrawableId": 0
+      }
+    ],
+    "Props": []
+  }
+]

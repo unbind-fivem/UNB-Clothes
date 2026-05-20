@@ -1,5 +1,0 @@
-*.ytd filter=lfs diff=lfs merge=lfs -text
-*.ydd filter=lfs diff=lfs merge=lfs -text
-*.yft filter=lfs diff=lfs merge=lfs -text
-*.ymt filter=lfs diff=lfs merge=lfs -text
-*.ytyp filter=lfs diff=lfs merge=lfs -text

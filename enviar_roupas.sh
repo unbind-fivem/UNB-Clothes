@@ -1,61 +1,81 @@
 #!/bin/bash
 
-# Envia o arquivo de configuração do LFS primeiro
-echo "⚙️ Configurando .gitattributes..."
-git add .gitattributes 2>/dev/null
-if git status --porcelain .gitattributes | grep -q "^"; then
-    git commit -m "chore: setup git lfs"
-    git push origin main
-fi
+# Remove LFS para forçar o envio via Git normal
+echo "⚙️ Removendo Git LFS e .gitattributes..."
+git lfs uninstall 2>/dev/null
+rm -f .gitattributes
 
-# Função para enviar a pasta
-send_dir() {
-    local dir="$1"
-    # Remove a barra final
-    dir="${dir%/}"
+echo "🚀 Iniciando envio inteligente em pedaços de no máximo 700MB..."
+
+# Script em Python embarcado para calcular o tamanho exato dos arquivos e agrupar
+python3 -c '
+import os
+import subprocess
+
+MAX_SIZE = 700 * 1024 * 1024  # 700 MB
+
+print("🔍 Escaneando todos os arquivos da pasta...")
+# Usa o comando "find" do Linux que é super rápido (lê 40k arquivos em 1 segundo) em vez do git status
+find_cmd = "find . -type f -not -path \"*/.git/*\" -not -name \"enviar_roupas.sh\" -not -name \".gitattributes\""
+result = subprocess.run(find_cmd, shell=True, capture_output=True, text=True)
+
+files_to_add = result.stdout.splitlines()
+
+if not files_to_add:
+    print("✅ Nenhum arquivo encontrado!")
+    exit(0)
+
+print(f"📦 {len(files_to_add)} arquivos encontrados. Calculando os lotes...")
+
+current_batch = []
+current_size = 0
+batch_number = 1
+
+def send_batch(batch, num, size_mb):
+    print("==================================================")
+    print(f"📤 Preparando LOTE {num} ({len(batch)} arquivos | ~{size_mb:.1f} MB)...")
+    print("==================================================")
     
-    # Verifica se há arquivos modificados ou novos nessa pasta
-    if git status --porcelain "$dir" | grep -q "^"; then
-        echo "=========================================="
-        echo "📤 Enviando lote: $dir"
-        echo "=========================================="
-        git add "$dir"
-        git commit -m "feat: adiciona pacote de roupas $dir"
+    # Adiciona de 500 em 500 para evitar o erro de "argument list too long" do sistema operacional
+    chunk_size = 500
+    for i in range(0, len(batch), chunk_size):
+        subprocess.run(["git", "add"] + batch[i:i+chunk_size])
+    
+    # Tenta fazer o commit
+    commit_res = subprocess.run(["git", "commit", "-m", f"feat: upload pacote {num}"])
+    
+    if commit_res.returncode == 0:
+        # Se houve alterações, envia para o GitHub
+        print("⏳ Enviando para o GitHub...")
+        push = subprocess.run(["git", "push", "origin", "main"])
+        if push.returncode != 0:
+            print(f"❌ Ocorreu um erro no PUSH do Lote {num}.")
+            print("Tente rodar o script novamente para continuar de onde parou.")
+            exit(1)
+        print(f"✅ Lote {num} enviado com sucesso!\n")
+    else:
+        # Se não houve alterações (retornou erro de commit vazio), ignora o push
+        print(f"⏩ Lote {num} já estava enviado ou sem alterações. Pulando push...\n")
+
+for filepath in files_to_add:
+    try:
+        size = os.path.getsize(filepath)
+    except:
+        size = 0
         
-        # Tenta enviar. Se der erro de conexão, você pode rodar o script de novo e ele continuará de onde parou.
-        git push origin main
+    # Se adicionar esse arquivo passar de 700MB, envia o lote atual antes
+    if current_size + size > MAX_SIZE and current_batch:
+        send_batch(current_batch, batch_number, current_size / (1024*1024))
+        current_batch = []
+        current_size = 0
+        batch_number += 1
         
-        echo "✅ Lote '$dir' enviado com sucesso!"
-        echo ""
-    else
-        echo "⏩ Pulando '$dir' (já enviado ou sem alterações)"
-    fi
-}
+    current_batch.append(filepath)
+    current_size += size
 
-# Itera sobre todas as pastas na raiz
-for folder in */; do
-    # Verifica se a pasta existe (evita falha se estiver vazia)
-    [ -d "$folder" ] || continue
+# Envia o último lote (que sobrou)
+if current_batch:
+    send_batch(current_batch, batch_number, current_size / (1024*1024))
 
-    # Se o nome da pasta começar com '[' (ex: [eup], [zpack_pack])
-    # Entra nela e envia as subpastas uma por uma para dividir bem o tamanho
-    if [[ "$folder" == [* ]]; then
-        for subfolder in "$folder"*/; do
-            [ -d "$subfolder" ] || continue
-            send_dir "$subfolder"
-        done
-    else
-        # Se for uma pasta normal (ex: eyes_pack), envia ela inteira
-        send_dir "$folder"
-    fi
-done
-
-# Envia o que sobrar (arquivos soltos na raiz se houver)
-echo "🔍 Verificando arquivos restantes..."
-git add .
-if git status --porcelain | grep -q "^"; then
-    git commit -m "chore: atualiza arquivos finais restantes"
-    git push origin main
-fi
-
-echo "🚀🚀🚀 Tudo finalizado! Todas as pastas foram enviadas para o GitHub!"
+print("🎉🎉🎉 SUCESSO! Todos os lotes foram processados!")
+'

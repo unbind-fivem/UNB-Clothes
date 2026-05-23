@@ -3,15 +3,44 @@ import subprocess
 
 MAX_SIZE = 700 * 1024 * 1024  # 700 MB
 
-print("🔍 Escaneando todos os arquivos da pasta...")
-# Usa o comando "find" do Linux que é super rápido (lê 40k arquivos em 1 segundo) em vez do git status
-find_cmd = "find . -type f -not -path \"*/.git/*\" -not -name \"enviar_roupas.sh\" -not -name \".gitattributes\""
-result = subprocess.run(find_cmd, shell=True, capture_output=True, text=True)
+print("🔍 Escaneando apenas os arquivos com alterações no git...")
+# Executa git status --porcelain -uall -z para listar arquivos modificados, deletados, adicionados ou não rastreados
+git_cmd = ["git", "status", "--porcelain", "-uall", "-z"]
+result = subprocess.run(git_cmd, capture_output=True, text=True, errors="replace")
 
-files_to_add = result.stdout.splitlines()
+items = result.stdout.split("\0")
+files_to_add = []
+i = 0
+while i < len(items):
+    item = items[i]
+    if not item:
+        i += 1
+        continue
+    
+    # Cada entrada tem o formato "XY path"
+    # XY são 2 caracteres, seguido por 1 espaço, então o caminho começa no índice 3
+    status = item[:2]
+    path = item[3:]
+    
+    # Ignora o próprio script, .gitattributes, envia_roupas.py ou arquivos dentro de .git se aparecerem
+    if path in ("enviar_roupas.sh", "envia_roupas.py", ".gitattributes") or "/.git/" in path:
+        i += 1
+        continue
+        
+    # Se for renomeado ou copiado, o git status -z retorna o caminho antigo e o novo
+    if status[0] in ("R", "C") and i + 1 < len(items):
+        dest_path = items[i+1]
+        if dest_path and dest_path not in ("enviar_roupas.sh", "envia_roupas.py", ".gitattributes"):
+            files_to_add.append(path)
+            files_to_add.append(dest_path)
+        i += 2
+    else:
+        if path:
+            files_to_add.append(path)
+        i += 1
 
 if not files_to_add:
-    print("✅ Nenhum arquivo encontrado!")
+    print("✅ Nenhum arquivo modificado ou novo encontrado no git!")
     exit(0)
 
 print(f"📦 {len(files_to_add)} arquivos encontrados. Calculando os lotes...")
